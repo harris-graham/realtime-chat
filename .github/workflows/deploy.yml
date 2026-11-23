@@ -1,0 +1,28 @@
+name: Deploy
+
+on:
+  release:
+    types: [ published ]
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install and build
+        run: |
+          npm ci --prefix ./server
+          npm ci --prefix ./socket
+          npm ci --prefix ./client
+          npm run build --prefix ./client
+
+      - name: Deploy
+        run: echo "Deploy step placeholder: add your deploy target (e.g. Docker, Render, Railway, Fly) here."

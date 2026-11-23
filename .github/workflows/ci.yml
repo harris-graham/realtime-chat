@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: chat_db
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install server deps
+        working-directory: ./server
+        run: npm ci
+
+      - name: Install socket deps
+        working-directory: ./socket
+        run: npm ci
+
+      - name: Install client deps
+        working-directory: ./client
+        run: npm ci
+
+      - name: Seed database
+        working-directory: ./server
+        env:
+          DB_HOST: 127.0.0.1
+          DB_USER: postgres
+          DB_PASSWORD: postgres
+          DB_NAME: chat_db
+          DB_PORT: 5432
+          ACCESS_TOKEN_SECRET: testsecret
+          REFRESH_TOKEN_SECRET: testsecret
+        run: node database/seed.js
+
+      - name: Build client
+        working-directory: ./client
+        run: npm run build
+
+      - name: Start servers
+        run: |
+          npm start --prefix ./server &> server.log &
+          npm start --prefix ./socket &> socket.log &
+          sleep 5
+
+      - name: Check database health
+        run: |
+          curl -s http://127.0.0.1:5000/db/health | head -c 200

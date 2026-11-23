@@ -1,0 +1,6 @@
+# Code owners
+* @kilo-org/maintainers
+
+/client/ @kilo-org/frontend
+/server/ @kilo-org/backend
+/.github/ @kilo-org/maintainers
